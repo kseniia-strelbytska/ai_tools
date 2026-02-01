@@ -431,8 +431,7 @@
             document.getElementById('resultContent').textContent = '';
 
             try {
-                // TODO: CHANGE THIS URL TO YOUR BACKEND URL
-                const API_URL = 'http://localhost:5000/api/process';
+                const API_URL = '/api/ai_tools';
                 
                 const response = await fetch(API_URL, {
                     method: 'POST',
