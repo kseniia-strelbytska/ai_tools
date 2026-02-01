@@ -104,45 +104,32 @@ tools = {
 # Vercel handler
 # ============================================
 
-def handler(request):
-    """
-    Vercel serverless function entrypoint
-    request has:
-        - request.method
-        - request.headers
-        - request.body (bytes)
-    """
-    try:
-        if request.method == "POST":
-            body = json.loads(request.body.decode())
-            tool_name = body.get("tool")
-            user_input = body.get("input")
-            
-            if tool_name not in tools:
-                return {
-                    "statusCode": 400,
-                    "body": json.dumps({"error": f"Unknown tool: {tool_name}"})
-                }
-            
-            tool = tools[tool_name]
-            result = tool.process_query(user_input)
-            return {
-                "statusCode": 200,
-                "headers": {"Content-Type": "application/json"},
-                "body": json.dumps(result)
-            }
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        body = json.loads(post_data.decode())
         
-        elif request.method == "GET":
-            # Health check
-            return {
-                "statusCode": 200,
-                "headers": {"Content-Type": "application/json"},
-                "body": json.dumps({"status": "ok", "available_tools": list(tools.keys())})
-            }
+        tool_name = body.get("tool")
+        user_input = body.get("input")
+
+        # Your processing logic
+        if tool_name in tools:
+            result = tools[tool_name].process_query(user_input)
+            response_data = result
+            status_code = 200
         else:
-            return {"statusCode": 405, "body": "Method Not Allowed"}
-    except Exception as e:
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"error": str(e)})
-        }
+            response_data = {"error": f"Unknown tool: {tool_name}"}
+            status_code = 400
+
+        self.send_response(status_code)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(response_data).encode())
+
+    def do_GET(self):
+        # Health check
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({"status": "ok"}).encode())
